@@ -1,69 +1,186 @@
-# CodeIgniter 4 Application Starter
+# 🛒 Belajar CI4 — Aplikasi Toko Sederhana
 
-## What is CodeIgniter?
+Proyek pembelajaran **CodeIgniter 4** yang mengimplementasikan aplikasi toko/e-commerce sederhana dengan fitur manajemen produk, keranjang belanja, dan autentikasi pengguna. Dibangun sebagai bagian dari studi framework PHP modern menggunakan pola arsitektur **MVC**.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+---
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+## ✨ Fitur
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+- 🔐 **Autentikasi** — Login & logout dengan session, validasi input, dan password hashing (`password_verify`)
+- 📦 **Manajemen Produk (CRUD)** — Tambah, lihat, edit, dan hapus produk beserta upload foto
+- 🛒 **Keranjang Belanja** — Tambah item, ubah kuantitas, hapus item, dan kosongkan keranjang menggunakan Cart service CI4
+- 📄 **Export PDF** — Download daftar produk dalam format PDF menggunakan Dompdf
+- 🛡️ **Auth Filter** — Proteksi route dengan custom filter, hanya user yang login yang bisa mengakses halaman utama
+- 🗄️ **Soft Delete** — Data produk dan user menggunakan soft delete (`deleted_at`)
+- 🌱 **Seeder & Migration** — Database siap pakai dengan seeder untuk data awal
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+---
 
-## Installation & updates
+## 🗂️ Struktur Proyek
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+```
+Belajar-CI4/
+├── app/
+│   ├── Controllers/
+│   │   ├── AuthController.php       # Login & logout
+│   │   ├── ProdukController.php     # CRUD produk + export PDF
+│   │   ├── TransaksiController.php  # Manajemen keranjang
+│   │   └── Home.php                 # Halaman utama, FAQ, profil, kontak
+│   ├── Models/
+│   │   ├── ProductModel.php         # Model produk (soft delete, timestamps)
+│   │   └── UserModel.php            # Model user (soft delete, timestamps)
+│   ├── Filters/
+│   │   └── Auth.php                 # Filter cek session isLoggedIn
+│   ├── Database/
+│   │   ├── Migrations/              # Tabel: user, product, transaction, transaction_detail
+│   │   └── Seeds/
+│   │       ├── UserSeeder.php       # Data awal user
+│   │       └── ProductSeeder.php   # Data awal produk
+│   └── Views/
+│       ├── layout.php               # Layout utama dengan NiceAdmin template
+│       ├── layout_clear.php         # Layout tanpa sidebar (untuk login)
+│       ├── v_login.php              # Halaman login
+│       ├── v_home.php               # Halaman beranda
+│       ├── v_produk.php             # Halaman daftar produk
+│       ├── v_keranjang.php          # Halaman keranjang belanja
+│       ├── produk/
+│       │   ├── index.php            # List produk (admin)
+│       │   ├── modal_add.php        # Modal tambah produk
+│       │   ├── modal_edit.php       # Modal edit produk
+│       │   └── download_pdf.php    # Template PDF produk
+│       └── components/
+│           ├── header.php
+│           ├── sidebar.php
+│           └── footer.php
+├── public/
+│   ├── index.php                    # Entry point aplikasi
+│   ├── img/                         # Foto produk yang diupload
+│   └── NiceAdmin/                   # Template admin (Bootstrap-based)
+└── composer.json
+```
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+---
 
-## Setup
+## 🔀 Routing
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+| Method | URL | Controller | Keterangan |
+|--------|-----|-----------|------------|
+| GET | `/` | `Home::index` | Beranda (butuh login) |
+| GET/POST | `/login` | `AuthController::login` | Halaman login |
+| GET | `/logout` | `AuthController::logout` | Logout & hapus session |
+| GET | `/produk` | `ProdukController::index` | Daftar produk |
+| POST | `/produk` | `ProdukController::create` | Tambah produk |
+| POST | `/produk/edit/{id}` | `ProdukController::edit` | Edit produk |
+| GET | `/produk/delete/{id}` | `ProdukController::delete` | Hapus produk |
+| GET | `/produk/download` | `ProdukController::download` | Export PDF |
+| GET | `/keranjang` | `TransaksiController::index` | Lihat keranjang |
+| POST | `/keranjang` | `TransaksiController::cart_add` | Tambah ke keranjang |
+| POST | `/keranjang/edit` | `TransaksiController::cart_edit` | Update kuantitas |
+| GET | `/keranjang/delete/{rowid}` | `TransaksiController::cart_delete` | Hapus item |
+| GET | `/keranjang/clear` | `TransaksiController::cart_clear` | Kosongkan keranjang |
 
-## Important Change with index.php
+> Semua route kecuali `/login` dilindungi oleh filter `auth`.
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+---
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+## 🗄️ Database
 
-**Please** read the user guide for a better explanation of how CI4 works!
+Terdapat 4 tabel utama yang dibuat via migration:
 
-## Repository Management
+- **`user`** — `id`, `username`, `email`, `password`, `role`, `created_at`, `updated_at`, `deleted_at`
+- **`product`** — `id`, `nama`, `harga`, `jumlah`, `foto`, `created_at`, `updated_at`, `deleted_at`
+- **`transaction`** — data header transaksi
+- **`transaction_detail`** — detail item per transaksi
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+---
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+## ⚙️ Persyaratan Sistem
 
-## Server Requirements
+- PHP **8.2** atau lebih tinggi
+- Ekstensi PHP: `intl`, `mbstring`, `json`, `mysqlnd`
+- Composer
+- MySQL / MariaDB
+- Web server (Apache/Nginx) atau `php spark serve`
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+---
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+## 🚀 Cara Instalasi
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+### 1. Clone repository
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+```bash
+git clone https://github.com/Renz-Amamiya/Belajar-CI4.git
+cd Belajar-CI4
+```
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+### 2. Install dependensi
+
+```bash
+composer install
+```
+
+### 3. Konfigurasi environment
+
+```bash
+cp env .env
+```
+
+Edit file `.env`, sesuaikan bagian berikut:
+
+```env
+app.baseURL = 'http://localhost:8080/'
+
+database.default.hostname = localhost
+database.default.database = nama_database_kamu
+database.default.username = root
+database.default.password = 
+database.default.DBDriver = MySQLi
+```
+
+### 4. Buat database & jalankan migration
+
+```bash
+php spark migrate
+```
+
+### 5. Jalankan seeder (data awal)
+
+```bash
+php spark db:seed UserSeeder
+php spark db:seed ProductSeeder
+```
+
+### 6. Jalankan server
+
+```bash
+php spark serve
+```
+
+Buka browser dan akses: **http://localhost:8080**
+
+---
+
+## 📦 Dependensi Utama
+
+| Package | Kegunaan |
+|---------|---------|
+| `codeigniter4/framework` | Framework PHP utama |
+| `dompdf/dompdf` | Generate PDF dari HTML |
+
+---
+
+## 🧑‍💻 Teknologi yang Digunakan
+
+- **CodeIgniter 4** — PHP Framework (MVC)
+- **MySQL** — Database
+- **NiceAdmin** — Template admin berbasis Bootstrap
+- **Dompdf** — Export laporan PDF
+- **CI4 Cart Service** — Manajemen keranjang belanja
+
+---
+
+## 👤 Author
+
+**Renz Amamiya**  
+Mahasiswa Teknik Informatika — Universitas Dian Nuswantoro (UDINUS)  
+GitHub: [@Renz-Amamiya](https://github.com/Renz-Amamiya)
